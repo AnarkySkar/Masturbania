@@ -200,7 +200,8 @@ MonoBehaviour:
     damage: 8
     force: 0.6
   airComboMaxDelay: 0.8
-  airAttackHoverDuration: 0.3
+  airAttackHoverDuration: 0.25
+  airAttackForwardDistance: 2.5
   downwardStrikeAcceleration: 25
   downwardStrikeDamageMultiplier: 1.8
   fallAttack:

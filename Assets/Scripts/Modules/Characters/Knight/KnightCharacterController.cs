@@ -125,15 +125,24 @@ namespace Metroidvania.Characters.Knight
 
         private void Update()
         {
-            // Null check to prevent crash if stateMachine isn't initialized yet
-            if (stateMachine != null)
+            // Wait for proper initialization
+            if (stateMachine == null)
             {
-                stateMachine.Update();
+                // Try to initialize if not already done
+                if (stateMachine == null)
+                {
+                    Debug.LogWarning("[KNIGHT] StateMachine not initialized, attempting to create...");
+                    stateMachine = new KnightStateMachine(this);
+                }
+                // Skip this frame if still null
+                if (stateMachine == null)
+                {
+                    Debug.LogError("[KNIGHT] StateMachine creation failed!");
+                    return;
+                }
             }
-            else
-            {
-                Debug.LogError("[KNIGHT] StateMachine is null in Update!");
-            }
+            
+            stateMachine.Update();
             
             // Check for directional dash input (Ctrl + Arrow keys)
             CheckDirectionalDashInput();

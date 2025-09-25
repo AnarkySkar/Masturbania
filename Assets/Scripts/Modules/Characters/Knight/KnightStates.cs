@@ -951,6 +951,9 @@ namespace Metroidvania.Characters.Knight
         private float _elapsedTime;
         private float _hoverStartTime;
         private bool _isHovering;
+        private float _targetDistance; // Fixed distance to move forward
+        private float _startPositionX; // Starting X position
+        private float _moveSpeed; // Speed of forward movement
 
         public KnightAirAttackState(KnightStateMachine machine, KnightData.Attack attackData, int animationHash, int attackNumber) : base(machine)
         {
@@ -973,14 +976,22 @@ namespace Metroidvania.Characters.Knight
             _hoverStartTime = Time.time;
             _isHovering = true;
             
-            // TEMPORARY DEBUG - Remove after testing
-            Debug.Log($"[AIR ATTACK] Entering air attack #{attackNumber}, hovering for {character.data.airAttackHoverDuration}s");
-            Debug.Log($"[AIR ATTACK] Using hover duration as minimum attack time: {character.data.airAttackHoverDuration}s (attackData.duration = {attackData.duration}s)");
-            Debug.Log($"[AIR ATTACK] Will auto-advance: {attackNumber == 2}");
-            
             // Start hovering - reduce gravity and stop falling
             character.rb.gravityScale = 0.1f;
             character.rb.linearVelocityY = 0f;
+            
+            // ✨ FIXED FORWARD MOVEMENT: Set target distance and movement speed
+            _targetDistance = character.data.airAttackForwardDistance; // Configurable distance
+            _startPositionX = character.transform.position.x;
+            _moveSpeed = _targetDistance / character.data.airAttackHoverDuration; // Move distance over hover duration
+            
+            int facingDirection = character.transform.localScale.x > 0 ? 1 : -1;
+            
+            // DEBUG LOGS
+            Debug.Log($"[AIR ATTACK #{attackNumber}] ENTER - Fixed distance movement setup!");
+            Debug.Log($"[AIR ATTACK #{attackNumber}] Target distance: {_targetDistance}, moveSpeed: {_moveSpeed}");
+            Debug.Log($"[AIR ATTACK #{attackNumber}] Start position: {_startPositionX}, facing: {facingDirection}");
+            Debug.Log($"[AIR ATTACK #{attackNumber}] Current velocity: {character.rb.linearVelocity}");
         }
 
         public override void Update()
@@ -1000,20 +1011,38 @@ namespace Metroidvania.Characters.Knight
             if (_isHovering && Time.time - _hoverStartTime < character.data.airAttackHoverDuration)
             {
                 character.rb.linearVelocityY = 0f;
-                // Allow slight horizontal movement
-                if (!character.collisionChecker.CollidingInWall(character.horizontalMove))
-                    character.rb.linearVelocityX = character.data.airMoveSpeed * 0.3f * character.horizontalMove;
+                
+                // ✨ FIXED DISTANCE MOVEMENT: Move forward at constant speed
+                int facingDirection = character.transform.localScale.x > 0 ? 1 : -1;
+                float currentDistance = Mathf.Abs(character.transform.position.x - _startPositionX);
+                
+                if (currentDistance < _targetDistance && !character.collisionChecker.CollidingInWall(facingDirection))
+                {
+                    float forwardVelocity = _moveSpeed * facingDirection;
+                    character.rb.linearVelocityX = forwardVelocity;
+                    
+                    // DEBUG LOG
+                    Debug.Log($"[AIR ATTACK #{attackNumber}] MOVING - distance: {currentDistance:F2}/{_targetDistance}, velocity: {forwardVelocity:F2}");
+                }
+                else
+                {
+                    character.rb.linearVelocityX = 0f;
+                    Debug.Log($"[AIR ATTACK #{attackNumber}] STOPPED - distance reached or wall hit");
+                }
             }
             else
             {
                 _isHovering = false;
                 character.rb.gravityScale = 1f; // Restore normal gravity
                 
-                // Normal air movement
+                // Allow normal air movement after hover
                 if (!character.collisionChecker.CollidingInWall(character.horizontalMove))
+                {
                     character.rb.linearVelocityX = character.data.airMoveSpeed * character.horizontalMove;
+                }
             }
             
+            Debug.Log($"[AIR ATTACK #{attackNumber}] Current velocity: {character.rb.linearVelocity}, isHovering: {_isHovering}");
             character.FlipFacingDirection(character.horizontalMove);
         }
 

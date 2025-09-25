@@ -122,6 +122,9 @@ namespace Metroidvania.Characters.Knight
         [Tooltip("Duration to hover in air during each air attack")]
         public float airAttackHoverDuration = 0.3f;
         
+        [Tooltip("Distance to move forward during each air attack")]
+        public float airAttackForwardDistance = 1.5f;
+        
         [Tooltip("Downward acceleration force for final strike")]
         public float downwardStrikeAcceleration = 25f;
         

@@ -22,13 +22,45 @@ namespace Metroidvania
         private void Awake()
         {
             _transform = transform;
-            var prefab = transform.GetChild(0).GetComponent<SpriteRenderer>();
+            
+            // Check if prefab child exists
+            if (transform.childCount == 0)
+            {
+                Debug.LogError("[PLATFORMER SHADOW] No child prefab found! Disabling component.");
+                enabled = false;
+                return;
+            }
+            
+            var prefabChild = transform.GetChild(0);
+            if (prefabChild == null)
+            {
+                Debug.LogError("[PLATFORMER SHADOW] Child 0 is null! Disabling component.");
+                enabled = false;
+                return;
+            }
+            
+            var prefab = prefabChild.GetComponent<SpriteRenderer>();
+            if (prefab == null)
+            {
+                Debug.LogError("[PLATFORMER SHADOW] Child prefab has no SpriteRenderer! Disabling component.");
+                enabled = false;
+                return;
+            }
+            
             _pixels = new Pixel[m_width];
             _halfWidth = m_width * k_PixelSize * 0.5f;
             for (int i = 0; i < m_width; i++)
             {
-                _pixels[i].renderer = Instantiate(prefab, _transform);
-                _pixels[i].transform = _pixels[i].renderer.transform;
+                var pixelRenderer = Instantiate(prefab, _transform);
+                if (pixelRenderer == null)
+                {
+                    Debug.LogError($"[PLATFORMER SHADOW] Failed to instantiate pixel {i}! Disabling component.");
+                    enabled = false;
+                    return;
+                }
+                
+                _pixels[i].renderer = pixelRenderer;
+                _pixels[i].transform = pixelRenderer.transform;
                 _pixels[i].renderer.gameObject.SetActive(true);
                 _pixels[i].xOffset = i * k_PixelSize - _halfWidth;
             }
@@ -41,10 +73,23 @@ namespace Metroidvania
 
         private void LateUpdate()
         {
+            // Safety check - skip if not properly initialized
+            if (_pixels == null || _transform == null)
+            {
+                return;
+            }
+            
             _basePosition = _transform.position;
             for (int i = 0; i < m_width; i++)
             {
                 var pixel = _pixels[i];
+                
+                // Safety check for individual pixels
+                if (pixel.renderer == null || pixel.transform == null)
+                {
+                    continue;
+                }
+                
                 Vector2 rayOrigin = new Vector2(_basePosition.x + pixel.xOffset, _basePosition.y);
                 int count = Physics2D.Raycast(rayOrigin, Vector2.down, _contactFilter, _raycastHit, m_distance);
                 bool hitted = count > 0;
